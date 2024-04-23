@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class DriveanddeliverApplication {
+public class DriveAndDeliverApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(DriveanddeliverApplication.class, args);
+		SpringApplication.run(DriveAndDeliverApplication.class, args);
 	}
 
 }
