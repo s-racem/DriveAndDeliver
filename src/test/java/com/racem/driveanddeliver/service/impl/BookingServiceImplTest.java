@@ -5,23 +5,24 @@ import com.racem.driveanddeliver.dto.TimeSlotDto;
 import com.racem.driveanddeliver.entity.Customer;
 import com.racem.driveanddeliver.entity.DeliveryOption;
 import com.racem.driveanddeliver.entity.TimeSlot;
+import com.racem.driveanddeliver.exception.ResourceNotFoundException;
+import com.racem.driveanddeliver.exception.TimeSlotBookedException;
 import com.racem.driveanddeliver.mapper.DeliveryOptionMapper;
 import com.racem.driveanddeliver.mapper.TimeSlotMapper;
 import com.racem.driveanddeliver.repository.CustomerRepository;
 import com.racem.driveanddeliver.repository.DeliveryOptionRepository;
 import com.racem.driveanddeliver.repository.TimeSlotRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceImplTest {
@@ -41,35 +42,70 @@ class BookingServiceImplTest {
     @InjectMocks
     private BookingServiceImpl bookingService;
 
-    @Test
-    public void testBookTimeSlot() {
-        LocalDateTime startTime = LocalDateTime.now();
-        LocalDateTime endTime = startTime.plusHours(1);
-        TimeSlot slot = new TimeSlot(1L, startTime, endTime, false, null);
-        Customer customer = new Customer(1L, "John Doe");
+    private Customer customer;
+    private TimeSlot timeSlot;
+    private TimeSlotDto timeSlotDto;
 
-        when(timeSlotRepository.findById(1L)).thenReturn(Optional.of(slot));
-        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+    @BeforeEach
+    void setUp() {
+        customer = new Customer();
+        customer.setId(1L);
 
-        slot.setCustomer(customer);  // Link the customer to the time slot
-        when(timeSlotMapper.timeSlotToTimeSlotDTO(slot)).thenReturn(new TimeSlotDto(1L, startTime, endTime, true, 1L));
+        timeSlot = new TimeSlot();
+        timeSlot.setId(1L);
+        timeSlot.setBooked(false);
 
-        TimeSlotDto result = bookingService.bookTimeSlot(1L, 1L);
-
-        assertTrue(result.isBooked());
-        assertEquals(1L, result.getCustomerId());
-        verify(timeSlotRepository).save(slot);  // Ensure it's saved with 'booked' status and linked customer
+        timeSlotDto = new TimeSlotDto();
+        timeSlotDto.setId(1L);
     }
 
     @Test
-    public void testBookTimeSlotAlreadyBooked() {
-        LocalDateTime startTime = LocalDateTime.now();
-        LocalDateTime endTime = startTime.plusHours(1);
-        TimeSlot slot = new TimeSlot(1L, startTime, endTime, true, null);
+    void bookTimeSlot_Success() {
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(timeSlotRepository.findById(1L)).thenReturn(Optional.of(timeSlot));
+        when(timeSlotRepository.save(any(TimeSlot.class))).thenReturn(timeSlot);
+        when(timeSlotMapper.timeSlotToTimeSlotDTO(any(TimeSlot.class))).thenReturn(timeSlotDto);
 
-        when(timeSlotRepository.findById(1L)).thenReturn(Optional.of(slot));
+        TimeSlotDto result = bookingService.bookTimeSlot(1L, 1L);
 
-        Exception exception = assertThrows(RuntimeException.class, () -> {
+        assertNotNull(result);
+        assertEquals(1L, result.getId());
+        verify(timeSlotRepository).save(timeSlot);
+        assertTrue(timeSlot.isBooked());
+        verify(timeSlotMapper).timeSlotToTimeSlotDTO(timeSlot);
+    }
+
+    @Test
+    void bookTimeSlot_CustomerNotFound_ThrowsException() {
+        when(customerRepository.findById(1L)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(ResourceNotFoundException.class, () -> {
+            bookingService.bookTimeSlot(1L, 1L);
+        });
+
+        assertEquals("Customer with ID 1 not found", exception.getMessage());
+    }
+
+    @Test
+    void bookTimeSlot_TimeSlotNotFound_ThrowsException() {
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(timeSlotRepository.findById(1L)).thenReturn(Optional.empty());
+
+        Exception exception = assertThrows(ResourceNotFoundException.class, () -> {
+            bookingService.bookTimeSlot(1L, 1L);
+        });
+
+        assertEquals("Time Slot with ID 1 not found", exception.getMessage());
+    }
+
+    @Test
+    void bookTimeSlot_AlreadyBooked_ThrowsException() {
+        timeSlot.setBooked(true);
+
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(timeSlotRepository.findById(1L)).thenReturn(Optional.of(timeSlot));
+
+        Exception exception = assertThrows(TimeSlotBookedException.class, () -> {
             bookingService.bookTimeSlot(1L, 1L);
         });
 
@@ -77,36 +113,57 @@ class BookingServiceImplTest {
     }
 
     @Test
-    public void testChooseDeliveryOptionSuccess() {
-        // Arrange
+    void chooseDeliveryOption_Success() {
+        // Setup
         Long customerId = 1L;
-        String method = "DRIVE";
-        DeliveryOption deliveryOption = new DeliveryOption(1L, method);
-        DeliveryOptionDTO expectedDto = new DeliveryOptionDTO(1L, method);
+        String method = "DELIVERY";
+        Customer customer = new Customer();
+        customer.setId(customerId);
 
+        DeliveryOption deliveryOption = new DeliveryOption();
+        deliveryOption.setMethod(method);
+
+        DeliveryOptionDTO expectedDTO = new DeliveryOptionDTO();
+        expectedDTO.setMethod(method);
+
+        // Stubbing
+        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
         when(deliveryOptionRepository.findByMethod(method)).thenReturn(Optional.of(deliveryOption));
-        when(deliveryOptionMapper.deliveryOptionToDeliveryOptionDTO(deliveryOption)).thenReturn(expectedDto);
+        when(deliveryOptionMapper.deliveryOptionToDeliveryOptionDTO(deliveryOption)).thenReturn(expectedDTO);
 
-        // Act
+        // Execution
         DeliveryOptionDTO result = bookingService.chooseDeliveryOption(customerId, method);
 
-        // Assert
-        assertEquals(expectedDto, result);
+        // Verify
+        assertNotNull(result);
+        assertEquals(method, result.getMethod());
+        verify(customerRepository).save(customer);
     }
 
     @Test
-    public void testChooseDeliveryOptionFailure() {
-        // Arrange
+    void chooseDeliveryOption_CustomerNotFound_ThrowsException() {
         Long customerId = 1L;
-        String method = "UNKNOWN";
+        String method = "DELIVERY";
 
-        when(deliveryOptionRepository.findByMethod(method)).thenReturn(Optional.empty());
+        when(customerRepository.findById(customerId)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(ResourceNotFoundException.class, () -> {
             bookingService.chooseDeliveryOption(customerId, method);
         });
+    }
 
-        assertEquals("Delivery option not available", exception.getMessage());
+    @Test
+    void chooseDeliveryOption_DeliveryOptionNotFound_ThrowsException() {
+        Long customerId = 1L;
+        String method = "DELIVERY";
+        Customer customer = new Customer();
+        customer.setId(customerId);
+
+        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        when(deliveryOptionRepository.findByMethod(method)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            bookingService.chooseDeliveryOption(customerId, method);
+        });
     }
 }

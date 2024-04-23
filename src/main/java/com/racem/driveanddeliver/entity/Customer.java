@@ -1,8 +1,6 @@
 package com.racem.driveanddeliver.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.OneToMany;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,6 +18,11 @@ public class Customer extends BaseEntity {
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "customer")
     private Set<TimeSlot> bookedTimeSlots = new HashSet<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "delivery_option_id")
+    private DeliveryOption deliveryOption;
+
     public Customer(long id, String name) {
         super();
         setId(id);

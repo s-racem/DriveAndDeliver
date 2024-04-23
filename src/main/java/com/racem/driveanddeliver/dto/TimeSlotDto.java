@@ -17,4 +17,11 @@ public class TimeSlotDto {
     private LocalDateTime endTime;
     private boolean isBooked;
     private Long customerId;
+
+    public TimeSlotDto(Long id, LocalDateTime startTime, LocalDateTime endTime, boolean booked) {
+        this.setId(id);
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.setBooked(booked);
+    }
 }
