@@ -21,12 +21,11 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @RequiredArgsConstructor
 public class BookingServiceImpl implements BookingService {
-    private CustomerRepository customerRepository;
-    private DeliveryOptionRepository deliveryOptionRepository;
-    private TimeSlotRepository timeSlotRepository;
-
-    private TimeSlotMapper timeSlotMapper;
-    private DeliveryOptionMapper deliveryOptionMapper;
+    private final CustomerRepository customerRepository;
+    private final DeliveryOptionRepository deliveryOptionRepository;
+    private final TimeSlotRepository timeSlotRepository;
+    private final TimeSlotMapper timeSlotMapper;
+    private final DeliveryOptionMapper deliveryOptionMapper;
     @Override
     public DeliveryOptionDTO chooseDeliveryOption(Long customerId, String method) {
         Customer customer = customerRepository.findById(customerId)

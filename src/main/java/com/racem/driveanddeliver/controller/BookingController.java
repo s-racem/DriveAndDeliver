@@ -3,6 +3,7 @@ package com.racem.driveanddeliver.controller;
 import com.racem.driveanddeliver.dto.DeliveryOptionDTO;
 import com.racem.driveanddeliver.dto.TimeSlotDto;
 import com.racem.driveanddeliver.service.base.BookingService;
+import com.racem.driveanddeliver.service.impl.BookingServiceImpl;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @Tag(name = "Booking Controller", description = "Booking Controller APIs")
 public class BookingController {
-    private BookingService bookingService;
+    private final BookingServiceImpl bookingService;
 
     @PostMapping("/chooseOption")
     @Operation(
