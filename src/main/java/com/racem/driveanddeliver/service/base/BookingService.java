@@ -5,6 +5,5 @@ import com.racem.driveanddeliver.dto.TimeSlotDto;
 
 public interface BookingService {
     DeliveryOptionDTO chooseDeliveryOption(Long customerId, String deliveryOption);
-    TimeSlotDto
-    bookTimeSlot(Long customerId, Long timeSlotId);
+    TimeSlotDto bookTimeSlot(Long customerId, Long timeSlotId);
 }

@@ -16,4 +16,5 @@ public class TimeSlotDto {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private boolean isBooked;
+    private Long customerId;
 }
