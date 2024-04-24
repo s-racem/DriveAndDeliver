@@ -28,8 +28,8 @@ public class BookingServiceImpl implements BookingService {
     private final DeliveryOptionMapper deliveryOptionMapper;
     @Override
     public DeliveryOptionDTO chooseDeliveryOption(Long customerId, String method) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer with ID " + customerId + " not found"));
+        log.info("Choose delivery option  {} for customer {}", method, customerId);
+        Customer customer = getCustomer(customerId);
 
         DeliveryOption deliveryOption = deliveryOptionRepository.findByMethod(method)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery option with method " + method + " not found"));
@@ -37,18 +37,20 @@ public class BookingServiceImpl implements BookingService {
         customer.setDeliveryOption(deliveryOption);
         customerRepository.save(customer);
 
+        log.info("Delivery option {} assigned successfully for customer {}", method, customerId);
         return deliveryOptionMapper.deliveryOptionToDeliveryOptionDTO(deliveryOption);
     }
 
     @Override
     public TimeSlotDto bookTimeSlot(Long customerId, Long timeSlotId) {
-        Customer customer = customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer with ID " + customerId + " not found"));
+        log.info("Booking time slot {} for customer {}", timeSlotId, customerId);
+        Customer customer = getCustomer(customerId);
 
         TimeSlot timeSlot = timeSlotRepository.findById(timeSlotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Time Slot with ID " + timeSlotId + " not found"));
 
         if (timeSlot.isBooked()) {
+            log.warn("Attempted to book an already booked time slot {}", timeSlotId);
             throw new TimeSlotBookedException("Time slot is already booked");
         }
 
@@ -56,7 +58,14 @@ public class BookingServiceImpl implements BookingService {
         timeSlot.setCustomer(customer);
 
         TimeSlot updatedTimeSlot = timeSlotRepository.save(timeSlot);
+        log.info("Time slot {} booked successfully for customer {}", timeSlotId, customerId);
+
         return timeSlotMapper.timeSlotToTimeSlotDTO(updatedTimeSlot);
 
+    }
+
+    private Customer getCustomer(Long customerId) {
+        return customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer with ID " + customerId + " not found"));
     }
 }
